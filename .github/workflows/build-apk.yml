@@ -1,1 +1,57 @@
+name: Build Android APK
 
+'on':
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Check project files
+        run: |
+          echo "Repository files:"
+          ls -la
+          echo "Gradle files:"
+          find . -maxdepth 4 -type f \( -name "settings.gradle*" -o -name "build.gradle*" -o -name "gradlew" \)
+
+      - name: Build APK
+        run: |
+          if [ -f "./gradlew" ]; then
+            chmod +x ./gradlew
+            ./gradlew assembleDebug
+          elif [ -f "./app/gradlew" ]; then
+            cd app
+            chmod +x ./gradlew
+            ./gradlew assembleDebug
+          else
+            echo "ERROR: Gradle wrapper not found."
+            echo "The project structure must be corrected."
+            exit 1
+          fi
+
+      - name: Upload APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ModirMali-debug-APK
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            **/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
